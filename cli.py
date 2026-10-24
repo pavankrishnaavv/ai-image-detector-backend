@@ -7,6 +7,9 @@ import sys
 import os
 import argparse
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Safe console encoding for Windows terminals
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':

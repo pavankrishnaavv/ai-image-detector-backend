@@ -9,6 +9,9 @@ import time
 from typing import List, Optional
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Configure UTF-8 stdout safely on Windows
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     try:

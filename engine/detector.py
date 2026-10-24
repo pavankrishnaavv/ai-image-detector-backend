@@ -13,6 +13,9 @@ from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import TAGS
 import torch
 from transformers import pipeline
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from .sightengine_client import SightengineClient
 
