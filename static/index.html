@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image Detector — Swin Transformer Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --card-hover: #1e293b;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --ai-color: #ef4444;
+      --ai-glow: rgba(239, 68, 68, 0.3);
+      --human-color: #10b981;
+      --human-glow: rgba(16, 185, 129, 0.3);
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --hairline: #374151;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    header {
+      border-bottom: 1px solid var(--hairline);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand span {
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.15);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      margin-left: 0.5rem;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .header-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .header-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .header-link:hover {
+      color: #fff;
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .badge-live .dot {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    main {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      position: relative;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab-nav {
+      display: flex;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* Drop Zone */
+    .dropzone {
+      border: 2px dashed var(--hairline);
+      border-radius: 14px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(15, 23, 42, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      min-height: 220px;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .dropzone-icon {
+      font-size: 2.5rem;
+      opacity: 0.7;
+    }
+
+    .dropzone-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .dropzone-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* URL Input */
+    .url-input-container {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .input-field {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.85rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Threshold Slider */
+    .slider-box {
+      background: #0f172a;
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .slider-header span:last-child {
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Samples Row */
+    .samples-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .samples-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sample-pill {
+      background: #1e293b;
+      border: 1px solid var(--hairline);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sample-pill:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    /* Preview Card */
+    .preview-box {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      max-height: 260px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--hairline);
+    }
+
+    .preview-box img {
+      width: 100%;
+      height: 100%;
+      max-height: 260px;
+      object-fit: contain;
+    }
+
+    /* Results section */
+    .verdict-banner {
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .verdict-banner.ai {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(168, 85, 247, 0.1));
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      box-shadow: 0 0 25px var(--ai-glow);
+    }
+
+    .verdict-banner.human {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.1));
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      box-shadow: 0 0 25px var(--human-glow);
+    }
+
+    .verdict-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .verdict-banner.ai .verdict-badge {
+      color: #f87171;
+    }
+
+    .verdict-banner.human .verdict-badge {
+      color: #34d399;
+    }
+
+    .verdict-conf {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .verdict-conf strong {
+      color: #fff;
+    }
+
+    /* Gauge / Progress Bar */
+    .gauge-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid var(--hairline);
+    }
+
+    .gauge-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .gauge-bar-wrapper {
+      height: 12px;
+      background: #1f2937;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .gauge-bar-ai {
+      height: 100%;
+      background: linear-gradient(90deg, #f87171, #ef4444);
+      transition: width 0.4s ease;
+    }
+
+    .gauge-bar-human {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      transition: width 0.4s ease;
+    }
+
+    /* Meta Specs Grid */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .spec-item {
+      background: #0f172a;
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .spec-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .spec-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* JSON Drawer */
+    .json-box {
+      background: #090d16;
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .copy-btn {
+      background: #1e293b;
+      border: 1px solid var(--hairline);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      float: right;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover {
+      color: #fff;
+      background: #334155;
+    }
+
+    .placeholder-state {
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 0.75rem;
+      padding: 2rem;
+    }
+
+    .placeholder-icon {
+      font-size: 3rem;
+      opacity: 0.4;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    footer {
+      border-top: 1px solid var(--hairline);
+      padding: 1.25rem 2rem;
+      text-align: center;
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      background: var(--bg);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <h1>AI Image Detector Backend</h1>
+      </div>
+      <span>Swin Transformer</span>
+    </div>
+
+    <div class="header-links">
+      <div class="badge-live">
+        <span class="dot"></span>
+        <span id="model-status-text">Engine Ready</span>
+      </div>
+      <a href="/docs" target="_blank" class="header-link">Swagger API Docs ↗</a>
+      <a href="https://huggingface.co/umm-maybe/AI-image-detector" target="_blank" class="header-link">Model Page ↗</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Input Control -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title"><span>📥</span> Image Input</h2>
+        <div class="tab-nav">
+          <button class="tab-btn active" id="tab-upload" onclick="switchTab('upload')">File Upload</button>
+          <button class="tab-btn" id="tab-url" onclick="switchTab('url')">URL Link</button>
+        </div>
+      </div>
+
+      <!-- File Upload Zone -->
+      <div id="upload-zone" class="dropzone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept="image/*" style="display: none" onchange="handleFileSelect(event)">
+        <div class="dropzone-icon">🖼️</div>
+        <div class="dropzone-text">Drop an image here or click to browse</div>
+        <div class="dropzone-sub">Supports PNG, JPG, JPEG, WebP, BMP (up to 20MB)</div>
+      </div>
+
+      <!-- URL Input Zone -->
+      <div id="url-zone" class="url-input-container">
+        <input type="url" id="url-input" class="input-field" placeholder="https://example.com/image.jpg" />
+        <button class="btn-primary" onclick="analyzeUrl()">
+          <span>🔍</span> Analyze URL
+        </button>
+      </div>
+
+      <!-- Image Preview -->
+      <div id="preview-box" class="preview-box">
+        <img id="preview-img" src="" alt="Selected Preview">
+      </div>
+
+      <!-- Threshold Slider -->
+      <div class="slider-box">
+        <div class="slider-header">
+          <span>AI Decision Threshold</span>
+          <span id="threshold-val">0.50</span>
+        </div>
+        <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.50" oninput="updateThreshold(this.value)">
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Lower threshold = more sensitive to AI artifacts. Higher threshold = stricter human proof.
+        </div>
+      </div>
+
+      <!-- Test Presets -->
+      <div class="samples-row">
+        <span class="samples-label">Quick Test:</span>
+        <button class="sample-pill" onclick="testPreset('https://images.unsplash.com/photo-1546768292-fb12f6c92568')">📷 Unsplash Photo</button>
+        <button class="sample-pill" onclick="testPreset('https://raw.githubusercontent.com/huggingface/documentation-images/main/hub/parrots.png')">🦜 Parrots Demo</button>
+      </div>
+    </div>
+
+    <!-- Right Column: Results & Telemetry -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title"><span>📊</span> Detection Telemetry</h2>
+        <span id="timing-badge" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: var(--text-muted);">0.0 ms</span>
+      </div>
+
+      <!-- Placeholder when nothing analyzed -->
+      <div id="placeholder-box" class="placeholder-state">
+        <div class="placeholder-icon">🔬</div>
+        <div style="font-weight: 600; font-size: 1.05rem;">Awaiting Image Input</div>
+        <div style="font-size: 0.85rem; max-width: 320px;">
+          Upload a file or enter an image URL to run real-time inference through the Swin Transformer engine.
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div id="loading-box" class="placeholder-state" style="display: none;">
+        <div class="spinner"></div>
+        <div style="font-weight: 600; font-size: 1.05rem; margin-top: 1rem;">Analyzing Image...</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Extracting visual transformer patch embeddings</div>
+      </div>
+
+      <!-- Real Results Box -->
+      <div id="results-box" style="display: none; flex-direction: column; gap: 1.25rem;">
+        
+        <!-- Big Verdict Banner -->
+        <div id="verdict-card" class="verdict-banner ai">
+          <div class="verdict-badge">
+            <span id="verdict-icon">🤖</span>
+            <span id="verdict-text">AI-GENERATED</span>
+          </div>
+          <div class="verdict-conf">
+            Model Confidence: <strong id="verdict-confidence">81.15%</strong>
+          </div>
+        </div>
+
+        <!-- Gauge Bar -->
+        <div class="gauge-container">
+          <div class="gauge-label-row">
+            <span style="color: #f87171;">🤖 Artificial: <span id="gauge-ai-val">81.1%</span></span>
+            <span style="color: #34d399;">👤 Human: <span id="gauge-human-val">18.9%</span></span>
+          </div>
+          <div class="gauge-bar-wrapper">
+            <div id="gauge-ai-fill" class="gauge-bar-ai" style="width: 81%;"></div>
+            <div id="gauge-human-fill" class="gauge-bar-human" style="width: 19%;"></div>
+          </div>
+        </div>
+
+        <!-- Specs Grid -->
+        <div class="specs-grid">
+          <div class="spec-item">
+            <div class="spec-label">Inference Latency</div>
+            <div class="spec-value" id="spec-latency">224 ms</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Resolution</div>
+            <div class="spec-value" id="spec-resolution">1536 × 674</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Target Architecture</div>
+            <div class="spec-value">Swin-B (224px)</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Compute Device</div>
+            <div class="spec-value" id="spec-device">CPU</div>
+          </div>
+        </div>
+
+        <!-- Raw JSON Explorer -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Engine JSON Payload</span>
+            <button class="copy-btn" onclick="copyJson()">Copy JSON</button>
+          </div>
+          <div id="json-viewer" class="json-box">{}</div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    Powered by <strong>umm-maybe/AI-image-detector</strong> &middot; Swin Transformer &middot; FastAPI Engine &middot; Open Source
+  </footer>
+
+  <script>
+    let currentThreshold = 0.50;
+    let currentImageFile = null;
+    let currentImageUrl = null;
+    let lastResult = null;
+
+    // Drag and Drop listeners
+    const dropzone = document.getElementById('upload-zone');
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        processSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function switchTab(tab) {
+      document.getElementById('tab-upload').classList.toggle('active', tab === 'upload');
+      document.getElementById('tab-url').classList.toggle('active', tab === 'url');
+      document.getElementById('upload-zone').style.display = tab === 'upload' ? 'flex' : 'none';
+      document.getElementById('url-zone').style.display = tab === 'url' ? 'flex' : 'none';
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files[0]) {
+        processSelectedFile(e.target.files[0]);
+      }
+    }
+
+    function processSelectedFile(file) {
+      currentImageFile = file;
+      currentImageUrl = null;
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const previewImg = document.getElementById('preview-img');
+        previewImg.src = e.target.result;
+        document.getElementById('preview-box').style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+
+      analyzeFile(file);
+    }
+
+    function updateThreshold(val) {
+      currentThreshold = parseFloat(val);
+      document.getElementById('threshold-val').innerText = currentThreshold.toFixed(2);
+      
+      // If we already have a result, dynamically re-calculate verdict without refetching if available
+      if (lastResult && lastResult.scores) {
+        recomputeVerdict();
+      }
+    }
+
+    function recomputeVerdict() {
+      if (!lastResult) return;
+      const art = lastResult.scores.artificial;
+      const isAI = art >= currentThreshold;
+      const verdict = isAI ? "AI-Generated" : "Human-Created";
+      const confidence = isAI ? art : lastResult.scores.human;
+
+      lastResult.is_ai_generated = isAI;
+      lastResult.verdict = verdict;
+      lastResult.confidence = confidence;
+      lastResult.confidence_percentage = (confidence * 100).toFixed(2) + "%";
+      lastResult.threshold = currentThreshold;
+
+      renderResults(lastResult);
+    }
+
+    async function analyzeFile(file) {
+      showLoading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch(`/api/v1/detect?threshold=${currentThreshold}`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Analysis failed");
+        lastResult = data;
+        renderResults(data);
+      } catch (err) {
+        alert("Error analyzing file: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function analyzeUrl() {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) {
+        alert("Please enter a valid image URL");
+        return;
+      }
+      currentImageUrl = url;
+      currentImageFile = null;
+
+      document.getElementById('preview-img').src = url;
+      document.getElementById('preview-box').style.display = 'flex';
+
+      showLoading(true);
+      try {
+        const res = await fetch('/api/v1/detect/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, threshold: currentThreshold })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Analysis failed");
+        lastResult = data;
+        renderResults(data);
+      } catch (err) {
+        alert("Error analyzing URL: " + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function testPreset(url) {
+      switchTab('url');
+      document.getElementById('url-input').value = url;
+      analyzeUrl();
+    }
+
+    function showLoading(isLoading) {
+      document.getElementById('loading-box').style.display = isLoading ? 'flex' : 'none';
+      if (isLoading) {
+        document.getElementById('placeholder-box').style.display = 'none';
+        document.getElementById('results-box').style.display = 'none';
+      }
+    }
+
+    function renderResults(data) {
+      document.getElementById('placeholder-box').style.display = 'none';
+      document.getElementById('loading-box').style.display = 'none';
+      document.getElementById('results-box').style.display = 'flex';
+
+      const isAI = data.is_ai_generated;
+      const verdictCard = document.getElementById('verdict-card');
+      const verdictIcon = document.getElementById('verdict-icon');
+      const verdictText = document.getElementById('verdict-text');
+      const verdictConf = document.getElementById('verdict-confidence');
+
+      if (isAI) {
+        verdictCard.className = 'verdict-banner ai';
+        verdictIcon.innerText = '🤖';
+        verdictText.innerText = 'AI-GENERATED';
+      } else {
+        verdictCard.className = 'verdict-banner human';
+        verdictIcon.innerText = '👤';
+        verdictText.innerText = 'HUMAN-CREATED';
+      }
+
+      verdictConf.innerText = data.confidence_percentage;
+
+      // Gauges
+      const artPct = (data.scores.artificial * 100).toFixed(1);
+      const humPct = (data.scores.human * 100).toFixed(1);
+      document.getElementById('gauge-ai-val').innerText = artPct + '%';
+      document.getElementById('gauge-human-val').innerText = humPct + '%';
+      document.getElementById('gauge-ai-fill').style.width = artPct + '%';
+      document.getElementById('gauge-human-fill').style.width = humPct + '%';
+
+      // Specs
+      document.getElementById('timing-badge').innerText = data.inference_time_ms + ' ms';
+      document.getElementById('spec-latency').innerText = data.inference_time_ms + ' ms';
+      if (data.image_size) {
+        document.getElementById('spec-resolution').innerText = `${data.image_size.width} × ${data.image_size.height}`;
+      } else {
+        document.getElementById('spec-resolution').innerText = 'N/A';
+      }
+      document.getElementById('spec-device').innerText = (data.device || 'CPU').toUpperCase();
+
+      // JSON Viewer
+      document.getElementById('json-viewer').innerText = JSON.stringify(data, null, 2);
+    }
+
+    function copyJson() {
+      if (!lastResult) return;
+      navigator.clipboard.writeText(JSON.stringify(lastResult, null, 2));
+      alert("JSON copied to clipboard!");
+    }
+  </script>
+</body>
+</html>
