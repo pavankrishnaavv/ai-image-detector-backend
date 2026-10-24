@@ -13,6 +13,9 @@ logger = logging.getLogger("ai_detector.sightengine")
 
 SIGHTENGINE_API_URL = "https://api.sightengine.com/1.0/check.json"
 
+DEFAULT_SIGHTENGINE_USER = "382710496"
+DEFAULT_SIGHTENGINE_SECRET = "ADQRT3n7ZdXNWYC2p2fFUhbxMRibWSDb"
+
 
 class SightengineClient:
     """
@@ -20,8 +23,8 @@ class SightengineClient:
     """
 
     def __init__(self, api_user: Optional[str] = None, api_secret: Optional[str] = None):
-        self.api_user = api_user or os.getenv("SIGHTENGINE_API_USER", "").strip()
-        self.api_secret = api_secret or os.getenv("SIGHTENGINE_API_SECRET", "").strip()
+        self.api_user = (api_user or os.getenv("SIGHTENGINE_API_USER", DEFAULT_SIGHTENGINE_USER)).strip()
+        self.api_secret = (api_secret or os.getenv("SIGHTENGINE_API_SECRET", DEFAULT_SIGHTENGINE_SECRET)).strip()
 
     @property
     def is_configured(self) -> bool:

@@ -11,6 +11,8 @@ services:
       - PORT=8000
       - HOST=0.0.0.0
       - CORS_ORIGINS=*
+      - SIGHTENGINE_API_USER=382710496
+      - SIGHTENGINE_API_SECRET=ADQRT3n7ZdXNWYC2p2fFUhbxMRibWSDb
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
