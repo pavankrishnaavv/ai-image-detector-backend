@@ -45,6 +45,24 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("verdict", data)
         self.assertIn("confidence_percentage", data)
         self.assertIn("refund_fraud_analysis", data)
+        self.assertIn("forensics", data)
+        if data.get("forensics"):
+            self.assertIn("forensic_verdict", data["forensics"])
+            self.assertIn("composite_forensic_score", data["forensics"])
+
+    def test_forensics_endpoint(self):
+        with open(self.sample_path, "rb") as f:
+            response = self.client.post(
+                "/api/v1/forensics",
+                files={"file": ("sketch.jpg", f, "image/jpeg")}
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("composite_forensic_score", data)
+        self.assertIn("forensic_verdict", data)
+        self.assertIn("frequency_analysis_fft", data)
+        self.assertIn("error_level_analysis_ela", data)
+        self.assertIn("noise_residuals", data)
 
     def test_detect_base64(self):
         import base64

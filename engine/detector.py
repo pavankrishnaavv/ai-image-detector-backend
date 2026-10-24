@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .sightengine_client import SightengineClient
+from .forensics import DigitalForensicsAnalyzer
 
 logger = logging.getLogger("ai_detector.engine")
 
@@ -50,6 +51,9 @@ class AIImageDetector:
             api_user=sightengine_user,
             api_secret=sightengine_secret,
         )
+
+        # Setup Digital Forensics Analyzer
+        self.forensics = DigitalForensicsAnalyzer()
 
         # Device selection for local model
         if device is None:
@@ -173,9 +177,11 @@ class AIImageDetector:
         provider: Optional[str] = None,
         sightengine_user: Optional[str] = None,
         sightengine_secret: Optional[str] = None,
+        include_forensics: bool = True,
     ) -> Dict[str, Any]:
         """
-        Classifies an image using Sightengine API (if configured) or local ViT.
+        Classifies an image using Sightengine API (if configured) or local ViT,
+        and executes deep digital forensics (2D FFT, ELA, noise residual, metadata audit).
         """
         eff_threshold = threshold if threshold is not None else self.threshold
         start_time = time.perf_counter()
@@ -188,6 +194,14 @@ class AIImageDetector:
                 "error": f"Failed to process image: {str(e)}",
                 "inference_time_ms": round((time.perf_counter() - start_time) * 1000, 2),
             }
+
+        # Run Digital Forensics if requested
+        forensic_data = None
+        if include_forensics:
+            try:
+                forensic_data = self.forensics.run_full_forensics(image, raw_bytes=raw_bytes)
+            except Exception as fe:
+                logger.warning(f"Forensic analysis failed: {fe}")
 
         # Determine provider to use
         req_provider = provider or self.preferred_provider
@@ -247,12 +261,26 @@ class AIImageDetector:
         verdict = "AI-Generated" if is_ai else "Human-Created (Real)"
         confidence = ai_prob if is_ai else real_prob
 
-        # Refund & Return Fraud Risk Scoring
-        if is_ai and ai_prob >= 0.70:
+        # Refund & Return Fraud Risk Scoring with Forensic Signals
+        forensic_verdict = forensic_data.get("forensic_verdict") if forensic_data else None
+        fft_checkerboard = (
+            forensic_data.get("frequency_analysis_fft", {}).get("checkerboard_detected", False)
+            if forensic_data
+            else False
+        )
+        meta_audit = forensic_data.get("metadata_audit", {}) if forensic_data else {}
+        ai_signature_found = meta_audit.get("ai_software_signature_detected", False) or meta_audit.get("c2pa_provenance_detected", False)
+
+        if ai_signature_found or (is_ai and ai_prob >= 0.70) or (is_ai and fft_checkerboard):
             refund_risk = "HIGH_RISK"
             refund_action = "FLAGGED_FOR_MANUAL_REVIEW"
-            refund_notes = "High confidence synthetic / AI-generated image. Reject or flag claim for manual inspection."
-        elif is_ai or (ai_prob >= 0.40 and not exif_info["has_camera_exif"]):
+            if ai_signature_found:
+                refund_notes = f"High confidence synthetic media. Provenance/AI tool marker detected: {meta_audit.get('summary')}."
+            elif fft_checkerboard:
+                refund_notes = "High confidence synthetic / AI-generated image. Periodic 2D FFT neural upsampling artifacts detected."
+            else:
+                refund_notes = "High confidence synthetic / AI-generated image. Reject or flag claim for manual inspection."
+        elif is_ai or fft_checkerboard or (ai_prob >= 0.40 and not exif_info["has_camera_exif"]):
             refund_risk = "MEDIUM_RISK"
             refund_action = "REQUEST_ADDITIONAL_PROOF"
             refund_notes = "Borderline synthetic signature or missing camera EXIF. Request receipt or packaging video."
@@ -278,6 +306,7 @@ class AIImageDetector:
                 "height": image.height,
             },
             "exif_metadata": exif_info,
+            "forensics": forensic_data,
             "refund_fraud_analysis": {
                 "risk_level": refund_risk,
                 "recommended_action": refund_action,
@@ -307,6 +336,7 @@ class AIImageDetector:
                 "Sightengine GenAI API Support (2,000 free ops/mo)",
                 "Local ViT-Base Offline Fallback",
                 "Camera Sensor EXIF Extraction",
+                "Digital Forensics Suite (2D FFT, ELA, Sensor Noise Residuals, C2PA)",
                 "E-Commerce Refund Fraud Triage",
             ],
         }

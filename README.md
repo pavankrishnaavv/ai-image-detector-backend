@@ -1,15 +1,21 @@
 # 🛡️ AI Image Detector & Refund Fraud Verification Engine
-### Powered by Sightengine GenAI API + Local Vision Transformer
+### Powered by Sightengine GenAI API + Local ViT + Digital Forensics Suite
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com)
 [![Sightengine](https://img.shields.io/badge/API-Sightengine%20GenAI-blueviolet.svg)](https://sightengine.com)
+[![Digital Forensics](https://img.shields.io/badge/Forensics-2D%20FFT%20%7C%20ELA%20%7C%20Noise-orange.svg)](https://github.com/pavankrishnaavv/ai-image-detector-backend)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 An enterprise-ready backend engine and REST API designed to detect **AI-generated images** (Midjourney, DALL-E 3, FLUX, Stable Diffusion) and protect platforms against **return & refund fraud** (fake damaged products, AI-inpainted cracks, synthetic claim receipts).
 
 Features a **Hybrid Architecture**:
-- ⚡ **Sightengine GenAI Cloud API**: Industry-leading accuracy (99%+ detection on modern DALL-E 3, FLUX, Midjourney v6). Includes **2,000 free operations/month**.
+- ⚡ **Sightengine GenAI Cloud API**: Industry-leading accuracy (90-99%+ detection on modern DALL-E 3, FLUX, Midjourney v6). Includes **2,000 free operations/month**.
+- 🔬 **Digital Forensics Suite (Frequency & Spatial Residuals)**:
+  - **2D Fast Fourier Transform (FFT)**: Identifies high-frequency periodic grid spikes and checkerboard artifacts left by transposed convolutions & neural upsamplers.
+  - **Error Level Analysis (ELA)**: Recompression delta analysis detecting localized inpainting, Photoshop Generative Fill, and synthetic tampering.
+  - **Laplacian Sensor Noise Consistency**: Distinguishes true physical sensor photon noise (PRNU) from unnatural diffusion denoising smoothing.
+  - **C2PA & Provenance Audit**: Inspects Content Credentials (`c2pa`), Adobe JUMBF manifests, Google SynthID markers, and IPTC `trainedAlgorithmicMedia`.
 - 💻 **Offline Local Vision Transformer**: Bundled local Google ViT model (`dima806/ai_vs_real_image_detection`) for zero-cost, offline fallback.
 - 📷 **Camera Sensor EXIF Audit**: Verifies real smartphone lens metadata (`Apple iPhone`, `Samsung Galaxy`, `FocalLength`, `ShutterSpeed`) to catch downloaded or synthetic files.
 - 🛡️ **Automated Refund Triage**: Classifies claims into `HIGH_RISK`, `MEDIUM_RISK`, or `LOW_RISK` with policy action recommendations.
@@ -144,25 +150,57 @@ python cli.py path/to/damage_photo.jpg --json
 
 **CLI Output Example**:
 ```text
-==========================================================
+==============================================================
 Provider:             Sightengine GenAI API
 Verdict:              [AI-GENERATED] AI-Generated
-Confidence:           99.00%
-AI / Fake Score:      99.00%
-Real / Authentic:     1.00%
+Confidence:           90.00%
+AI / Fake Score:      90.00%
+Real / Authentic:     10.00%
 Decision Threshold:   0.5
 Image Resolution:     1024x538 px
-Inference Latency:    182.40 ms
+Inference Latency:    1879.31 ms
 Model:                sightengine/genai
 Execution Target:     CLOUD_API
-----------------------------------------------------------
+--------------------------------------------------------------
+DIGITAL FORENSICS & NEURAL RESIDUAL AUDIT:
+  Forensic Verdict:   HIGH_SYNTHETIC_PROBABILITY
+  Forensic AI Score:  68.0%
+  2D FFT Grid Spikes: 80 peaks (Checkerboard: True)
+  Noise Inconsistency:1.117 (Diffusion Smoothing: True)
+  ELA Compression:    Mean 0.811, Max 18.0 (Tampering: False)
+  Camera EXIF Audit:  No physical camera hardware EXIF tags found. Metadata is stripped or missing, typical of AI generation or web downloads.
+  Key Forensic Flags:
+    * Metadata: Camera sensor hardware EXIF is missing/stripped.
+    * FFT 2D Spectrum: 80 periodic grid spikes detected (neural upsampling artifact).
+    * Noise Residuals: High noise inconsistency index (1.117), characteristic of diffusion denoising.
+--------------------------------------------------------------
 RETURN / REFUND CLAIM ANALYSIS:
   Risk Level:         HIGH_RISK
   Recommended Action: FLAGGED_FOR_MANUAL_REVIEW
   Camera EXIF Found:  False
-  Policy Notes:       High confidence synthetic / AI-generated image. Reject or flag claim for manual inspection.
-==========================================================
+  Policy Notes:       High confidence synthetic / AI-generated image. Periodic 2D FFT neural upsampling artifacts detected.
+==============================================================
 ```
+
+---
+
+## 🔬 How Digital Forensics & Neural Residuals Work
+
+Unlike simple classification models that only evaluate artistic style, our **Digital Forensics Suite** examines the low-level physical and mathematical properties of digital images:
+
+1. **2D Fast Fourier Transform (FFT) Neural Grid Spikes**:
+   - Neural generators (StyleGAN, Stable Diffusion, DALL-E) construct images using convolutional layers, transposed convolutions, or patch upsamplers.
+   - These discrete upsampling grids leave behind **periodic spatial harmonics** (checkerboard artifacts).
+   - Natural photographs exhibit a smooth power-law radial frequency decay ($1/f^\alpha$). Synthetic images exhibit isolated harmonic peaks in the high-frequency spectrum.
+2. **Error Level Analysis (ELA)**:
+   - When an image is recompressed at a fixed JPEG quantization table (quality 90%), differences between the original and recompressed pixels reveal compression history.
+   - In genuine photos, surfaces of similar texture show uniform error. In AI-inpainted images (e.g., synthetic cracks or broken keys inserted into a photo), the modified sections display distinct quantization deltas.
+3. **Sensor Noise Residuals & Laplacian Variance**:
+   - Authentic camera sensors have physical Photo-Response Non-Uniformity (PRNU) and photon shot noise evenly distributed across the entire sensor frame.
+   - Diffusion models generate images by iteratively removing Gaussian noise, leaving unnatural spatial smoothing on flat surfaces juxtaposed against high pseudo-noise on textured surfaces.
+4. **Metadata & Provenance Verification**:
+   - Audits camera hardware EXIF trees (`Make`, `Model`, `Lens`, `FocalLength`, `ShutterSpeed`, `ISO`).
+   - Scans raw JPEG/PNG byte streams for C2PA JUMBF boxes, Adobe Content Credentials, Google SynthID watermarks, and IPTC `trainedAlgorithmicMedia`.
 
 ---
 

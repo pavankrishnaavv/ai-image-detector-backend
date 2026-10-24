@@ -38,10 +38,11 @@ def format_output(result: dict):
     device = result["device"].upper()
     provider = result.get("provider", "Unknown")
     refund = result.get("refund_fraud_analysis", {})
+    forensics = result.get("forensics")
 
     badge = "[AI-GENERATED]" if result["is_ai_generated"] else "[GENUINE / REAL]"
     
-    print("\n" + "=" * 58)
+    print("\n" + "=" * 62)
     print(f"Provider:             {provider}")
     print(f"Verdict:              {badge} {verdict}")
     print(f"Confidence:           {confidence}")
@@ -54,14 +55,36 @@ def format_output(result: dict):
     print(f"Model:                {result['model']}")
     print(f"Execution Target:     {device}")
     
+    if forensics:
+        print("-" * 62)
+        print("DIGITAL FORENSICS & NEURAL RESIDUAL AUDIT:")
+        print(f"  Forensic Verdict:   {forensics.get('forensic_verdict')}")
+        print(f"  Forensic AI Score:  {forensics.get('composite_forensic_score') * 100:.1f}%")
+        
+        fft_data = forensics.get("frequency_analysis_fft", {})
+        print(f"  2D FFT Grid Spikes: {fft_data.get('high_freq_peaks_count', 0)} peaks (Checkerboard: {fft_data.get('checkerboard_detected')})")
+        
+        noise_data = forensics.get("noise_residuals", {})
+        print(f"  Noise Inconsistency:{noise_data.get('noise_inconsistency_index')} (Diffusion Smoothing: {noise_data.get('unnatural_smoothing_detected')})")
+        
+        ela_data = forensics.get("error_level_analysis_ela", {})
+        print(f"  ELA Compression:    Mean {ela_data.get('mean_error')}, Max {ela_data.get('max_error')} (Tampering: {ela_data.get('tampering_detected')})")
+        
+        meta = forensics.get("metadata_audit", {})
+        print(f"  Camera EXIF Audit:  {meta.get('summary')}")
+        
+        print("  Key Forensic Flags:")
+        for ind in forensics.get("key_indicators", []):
+            print(f"    * {ind}")
+
     if refund:
-        print("-" * 58)
+        print("-" * 62)
         print("RETURN / REFUND CLAIM ANALYSIS:")
         print(f"  Risk Level:         {refund.get('risk_level')}")
         print(f"  Recommended Action: {refund.get('recommended_action')}")
         print(f"  Camera EXIF Found:  {refund.get('has_camera_exif')}")
         print(f"  Policy Notes:       {refund.get('notes')}")
-    print("=" * 58 + "\n")
+    print("=" * 62 + "\n")
 
 
 def main():
@@ -72,6 +95,7 @@ def main():
     parser.add_argument("--threshold", type=float, default=0.5, help="Classification threshold (default 0.5)")
     parser.add_argument("--sightengine-user", help="Sightengine API User ID")
     parser.add_argument("--sightengine-secret", help="Sightengine API Secret")
+    parser.add_argument("--no-forensics", action="store_true", help="Disable 2D FFT & ELA digital forensics")
     parser.add_argument("--json", action="store_true", help="Output raw JSON format")
 
     args = parser.parse_args()
@@ -93,6 +117,7 @@ def main():
         provider=args.provider,
         sightengine_user=args.sightengine_user,
         sightengine_secret=args.sightengine_secret,
+        include_forensics=not args.no_forensics,
     )
 
     if args.json:

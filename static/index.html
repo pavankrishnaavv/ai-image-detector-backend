@@ -358,6 +358,33 @@
           </div>
         </div>
 
+        <!-- Digital Forensics & Neural Residuals Section -->
+        <div id="forensics-section" class="panel" style="padding: 1.25rem; background: #0d1527; border-color: #1e293b; gap: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+              🔬 Neural Residuals &amp; Forensics
+            </span>
+            <span id="forensic-verdict-pill" class="risk-pill high">HIGH SYNTHETIC</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">2D FFT Power Spectrum</div>
+              <img id="fft-preview-img" src="" alt="FFT Spectrum" style="width: 100%; max-height: 140px; object-fit: contain; border-radius: 4px; background: #000;" />
+              <div id="fft-spikes-label" style="font-size: 0.72rem; color: #cbd5e1; margin-top: 4px; font-family: 'JetBrains Mono';">80 grid peaks</div>
+            </div>
+            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.75rem; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">ELA Compression Heatmap</div>
+              <img id="ela-preview-img" src="" alt="ELA Heatmap" style="width: 100%; max-height: 140px; object-fit: contain; border-radius: 4px; background: #000;" />
+              <div id="ela-delta-label" style="font-size: 0.72rem; color: #cbd5e1; margin-top: 4px; font-family: 'JetBrains Mono';">Delta max: 18.0</div>
+            </div>
+          </div>
+
+          <div id="forensic-flags-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: #cbd5e1;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
         <div class="specs-grid">
           <div class="spec-item">
             <div class="spec-label">Engine Provider</div>
@@ -520,6 +547,41 @@
       document.getElementById('gauge-human-val').innerText = humPct + '%';
       document.getElementById('gauge-ai-fill').style.width = artPct + '%';
       document.getElementById('gauge-human-fill').style.width = humPct + '%';
+
+      // Digital Forensics Rendering
+      const fore = data.forensics;
+      const foreSec = document.getElementById('forensics-section');
+      if (fore) {
+        foreSec.style.display = 'flex';
+        const fpill = document.getElementById('forensic-verdict-pill');
+        fpill.innerText = fore.forensic_verdict.replace(/_/g, ' ');
+        fpill.className = 'risk-pill ' + (fore.forensic_verdict === 'HIGH_SYNTHETIC_PROBABILITY' ? 'high' : (fore.forensic_verdict === 'SUSPICIOUS_ANOMALIES' ? 'medium' : 'low'));
+
+        const fft = fore.frequency_analysis_fft || {};
+        if (fft.spectrum_preview_b64) {
+          document.getElementById('fft-preview-img').src = fft.spectrum_preview_b64;
+          document.getElementById('fft-spikes-label').innerText = `${fft.high_freq_peaks_count || 0} grid spikes (Checkerboard: ${fft.checkerboard_detected ? 'Yes' : 'No'})`;
+        }
+
+        const ela = fore.error_level_analysis_ela || {};
+        if (ela.heatmap_preview_b64) {
+          document.getElementById('ela-preview-img').src = ela.heatmap_preview_b64;
+          document.getElementById('ela-delta-label').innerText = `Max delta: ${ela.max_error || 0} (Tampered: ${ela.tampering_detected ? 'Yes' : 'No'})`;
+        }
+
+        const flagsContainer = document.getElementById('forensic-flags-list');
+        flagsContainer.innerHTML = '';
+        (fore.key_indicators || []).forEach(ind => {
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.alignItems = 'flex-start';
+          row.style.gap = '6px';
+          row.innerHTML = `<span style="color: #818cf8;">•</span> <span>${ind}</span>`;
+          flagsContainer.appendChild(row);
+        });
+      } else {
+        foreSec.style.display = 'none';
+      }
 
       document.getElementById('timing-badge').innerText = data.inference_time_ms + ' ms';
       document.getElementById('spec-latency').innerText = data.inference_time_ms + ' ms';

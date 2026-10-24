@@ -75,6 +75,7 @@ class URLDetectionRequest(BaseModel):
     provider: Optional[str] = Field("auto", description="'auto', 'sightengine', or 'local'")
     sightengine_user: Optional[str] = None
     sightengine_secret: Optional[str] = None
+    include_forensics: Optional[bool] = Field(True, description="Compute 2D FFT, ELA, and sensor noise forensics")
 
 
 class Base64DetectionRequest(BaseModel):
@@ -83,6 +84,7 @@ class Base64DetectionRequest(BaseModel):
     provider: Optional[str] = Field("auto")
     sightengine_user: Optional[str] = None
     sightengine_secret: Optional[str] = None
+    include_forensics: Optional[bool] = Field(True, description="Compute 2D FFT, ELA, and sensor noise forensics")
 
 
 class SightengineConfig(BaseModel):
@@ -127,6 +129,7 @@ class DetectionResponse(BaseModel):
     threshold: float
     image_size: Optional[ImageDimensions] = None
     exif_metadata: Optional[EXIFMetadata] = None
+    forensics: Optional[dict] = None
     refund_fraud_analysis: Optional[RefundFraudAnalysis] = None
     inference_time_ms: float
     model: str
@@ -180,6 +183,7 @@ async def detect_uploaded_image(
     file: UploadFile = File(..., description="Image file to analyze"),
     threshold: float = Query(0.5, ge=0.0, le=1.0),
     provider: str = Query("auto", description="'auto', 'sightengine', or 'local'"),
+    include_forensics: bool = Query(True, description="Compute 2D FFT, ELA, and noise forensics"),
     x_sightengine_user: Optional[str] = Header(None, alias="X-Sightengine-User"),
     x_sightengine_secret: Optional[str] = Header(None, alias="X-Sightengine-Secret"),
 ):
@@ -196,6 +200,7 @@ async def detect_uploaded_image(
             provider=provider,
             sightengine_user=x_sightengine_user,
             sightengine_secret=x_sightengine_secret,
+            include_forensics=include_forensics,
         )
         if not result.get("success", False):
             raise HTTPException(status_code=422, detail=result.get("error", "Failed to process image."))
@@ -204,6 +209,36 @@ async def detect_uploaded_image(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+
+
+@app.post("/api/v1/forensics", tags=["Forensics"])
+async def analyze_image_forensics(
+    file: UploadFile = File(..., description="Image file to run digital forensics on"),
+):
+    """
+    Run dedicated digital forensics analysis:
+    - Metadata & Camera Hardware Audit (EXIF / C2PA / IPTC)
+    - 2D Fast Fourier Transform (FFT) Neural Grid Artifact Detection
+    - Error Level Analysis (ELA) Compression Tampering Heatmap
+    - Noise Residuals & Diffusion Smoothing Analysis (Laplacian)
+    """
+    from PIL import Image
+    import io
+    from engine.forensics import DigitalForensicsAnalyzer
+
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        img = Image.open(io.BytesIO(content))
+        analyzer = DigitalForensicsAnalyzer()
+        report = analyzer.run_full_forensics(img, raw_bytes=content)
+        report["filename"] = file.filename
+        report["image_size"] = {"width": img.width, "height": img.height}
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Forensic analysis failed: {str(e)}")
 
 
 @app.post("/api/v1/detect/url", response_model=DetectionResponse, tags=["Detection"])
@@ -216,6 +251,7 @@ async def detect_image_url(request: URLDetectionRequest):
             provider=request.provider,
             sightengine_user=request.sightengine_user,
             sightengine_secret=request.sightengine_secret,
+            include_forensics=request.include_forensics if request.include_forensics is not None else True,
         )
         if not result.get("success", False):
             raise HTTPException(status_code=422, detail=result.get("error", "Failed to analyze URL."))
@@ -236,6 +272,7 @@ async def detect_image_base64(request: Base64DetectionRequest):
             provider=request.provider,
             sightengine_user=request.sightengine_user,
             sightengine_secret=request.sightengine_secret,
+            include_forensics=request.include_forensics if request.include_forensics is not None else True,
         )
         if not result.get("success", False):
             raise HTTPException(status_code=422, detail=result.get("error", "Failed to decode base64."))
