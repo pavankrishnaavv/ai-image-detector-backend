@@ -1,7 +1,6 @@
 """
-FastAPI Server for AI Image Detector Backend.
-Provides high-performance REST APIs for detecting AI-generated images using
-the 'umm-maybe/AI-image-detector' model.
+FastAPI Server for AI Image Detector & Refund Fraud Verification Engine.
+Powered by 'dima806/ai_vs_real_image_detection' Vision Transformer (ViT).
 """
 
 import os
@@ -34,18 +33,19 @@ from engine.detector import get_detector, AIImageDetector
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("[INFO] Initializing AI Image Detector engine...")
-    detector = get_detector()
+    detector = get_detector(force_reload=True)
     info = detector.get_info()
-    print(f"[READY] Detector engine ready. Source: {info['model_source']}, Device: {info['device']}")
+    print(f"[READY] Detector engine ready. Source: {info['model_source']}, Device: {info['device']}, Model: {info['model_name']}")
     yield
     print("[STOP] Shutting down AI Image Detector engine...")
 
 
 app = FastAPI(
-    title="AI Image Detector Backend Engine",
+    title="AI Image Detector & Refund Fraud Verification Engine",
     description="""
-High-throughput REST API backend engine to detect AI-generated vs human-created images 
-using the Hugging Face `umm-maybe/AI-image-detector` Swin Transformer architecture.
+High-throughput REST API backend engine to detect AI-generated vs authentic images 
+using the fine-tuned `dima806/ai_vs_real_image_detection` Vision Transformer (ViT) architecture.
+Includes automated Camera EXIF metadata extraction and Return/Refund Fraud risk scoring.
 
 ### Supported Input Modes:
 - 📤 **File Upload (`multipart/form-data`)**: Upload raw image files (PNG, JPG, WebP, etc.)
@@ -53,7 +53,7 @@ using the Hugging Face `umm-maybe/AI-image-detector` Swin Transformer architectu
 - 🔤 **Base64 String (`application/json`)**: Send data URI or raw base64 encoded strings
 - 📦 **Batch Analysis**: Analyze multiple images in a single call for high-scale workflows
     """,
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -79,28 +79,10 @@ class URLDetectionRequest(BaseModel):
     url: str = Field(..., description="Direct HTTP or HTTPS URL to an image")
     threshold: Optional[float] = Field(0.5, ge=0.0, le=1.0, description="Decision threshold for AI generation")
 
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "url": "https://images.unsplash.com/photo-1546768292-fb12f6c92568",
-                "threshold": 0.5
-            }
-        }
-    }
-
 
 class Base64DetectionRequest(BaseModel):
-    image_base64: str = Field(..., description="Base64 encoded string or Data URI (e.g. data:image/jpeg;base64,...)")
+    image_base64: str = Field(..., description="Base64 encoded string or Data URI")
     threshold: Optional[float] = Field(0.5, ge=0.0, le=1.0, description="Decision threshold for AI generation")
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "image_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-                "threshold": 0.5
-            }
-        }
-    }
 
 
 class ScoreBreakdown(BaseModel):
@@ -113,6 +95,22 @@ class ImageDimensions(BaseModel):
     height: int
 
 
+class EXIFMetadata(BaseModel):
+    has_camera_exif: bool
+    camera_make: Optional[str] = None
+    camera_model: Optional[str] = None
+    date_time: Optional[str] = None
+    software: Optional[str] = None
+    all_tags_count: int
+
+
+class RefundFraudAnalysis(BaseModel):
+    risk_level: str
+    recommended_action: str
+    notes: str
+    has_camera_exif: bool
+
+
 class DetectionResponse(BaseModel):
     success: bool
     is_ai_generated: bool
@@ -122,6 +120,8 @@ class DetectionResponse(BaseModel):
     scores: ScoreBreakdown
     threshold: float
     image_size: Optional[ImageDimensions] = None
+    exif_metadata: Optional[EXIFMetadata] = None
+    refund_fraud_analysis: Optional[RefundFraudAnalysis] = None
     inference_time_ms: float
     model: str
     device: str
@@ -144,7 +144,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": time.time(),
-        "service": "AI Image Detector Engine",
+        "service": "AI Image Detector & Refund Fraud Verification Engine",
     }
 
 
@@ -161,7 +161,7 @@ async def detect_uploaded_image(
     threshold: float = Query(0.5, ge=0.0, le=1.0, description="Sensitivity threshold for AI detection"),
 ):
     """
-    Detect whether an uploaded image file is AI-generated.
+    Detect whether an uploaded image file is AI-generated and assess return/refund fraud risk.
     """
     detector = get_detector()
     try:

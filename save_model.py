@@ -1,5 +1,5 @@
 """
-Script to save/export the 'umm-maybe/AI-image-detector' model and preprocessor
+Script to save/export the 'dima806/ai_vs_real_image_detection' model and preprocessor
 to a local directory (./model_weights) so the backend can run fully offline
 and self-contained.
 """
@@ -7,7 +7,7 @@ and self-contained.
 import os
 from transformers import pipeline
 
-MODEL_NAME = "umm-maybe/AI-image-detector"
+MODEL_NAME = "dima806/ai_vs_real_image_detection"
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_weights")
 
 def export_model():

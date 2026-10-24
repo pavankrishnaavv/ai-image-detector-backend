@@ -30,7 +30,7 @@ class TestAPIEndpoints(unittest.TestCase):
         response = self.client.get("/api/v1/info")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["model_name"], "umm-maybe/AI-image-detector")
+        self.assertEqual(data["model_name"], "dima806/ai_vs_real_image_detection")
 
     def test_detect_upload(self):
         with open(self.sample_path, "rb") as f:
@@ -44,6 +44,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("is_ai_generated", data)
         self.assertIn("verdict", data)
         self.assertIn("confidence_percentage", data)
+        self.assertIn("refund_fraud_analysis", data)
 
     def test_detect_base64(self):
         import base64

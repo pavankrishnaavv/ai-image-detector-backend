@@ -17,27 +17,28 @@ from engine.detector import AIImageDetector, get_detector
 class TestAIImageDetector(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.detector = get_detector()
+        cls.detector = get_detector(force_reload=True)
         cls.sample_dir = os.path.join(BASE_DIR, "tests", "sample_images")
         cls.sketch_path = os.path.join(cls.sample_dir, "human_sketch.jpg")
         cls.pattern_path = os.path.join(cls.sample_dir, "synthetic_pattern.png")
 
     def test_engine_info(self):
         info = self.detector.get_info()
-        self.assertEqual(info["model_name"], "umm-maybe/AI-image-detector")
-        self.assertIn("artificial", info["labels"])
-        self.assertIn("human", info["labels"])
+        self.assertEqual(info["model_name"], "dima806/ai_vs_real_image_detection")
+        self.assertIn("REAL", info["labels"])
+        self.assertIn("FAKE", info["labels"])
         self.assertEqual(info["model_source"], "local_weights")
 
     def test_predict_from_filepath(self):
         res = self.detector.predict(self.sketch_path)
         self.assertTrue(res["success"])
-        self.assertIn(res["verdict"], ["AI-Generated", "Human-Created"])
+        self.assertIn("is_ai_generated", res)
         self.assertIn("artificial", res["scores"])
         self.assertIn("human", res["scores"])
         self.assertGreater(res["confidence"], 0.0)
         self.assertLessEqual(res["confidence"], 1.0)
         self.assertGreater(res["inference_time_ms"], 0.0)
+        self.assertIn("refund_fraud_analysis", res)
 
     def test_predict_from_pil(self):
         img = Image.open(self.pattern_path)
@@ -65,11 +66,9 @@ class TestAIImageDetector(unittest.TestCase):
             self.assertTrue(r["success"])
 
     def test_threshold_behavior(self):
-        # With threshold 0.0, everything is flagged as AI
         res_low = self.detector.predict(self.sketch_path, threshold=0.0)
         self.assertTrue(res_low["is_ai_generated"])
 
-        # With threshold 1.0, nothing is flagged as AI
         res_high = self.detector.predict(self.sketch_path, threshold=1.0)
         self.assertFalse(res_high["is_ai_generated"])
 

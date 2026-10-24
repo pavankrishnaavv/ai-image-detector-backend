@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Image Detector — Swin Transformer Engine</title>
+  <title>AI Image Detector & Refund Fraud Verification Engine</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
       --ai-glow: rgba(239, 68, 68, 0.3);
       --human-color: #10b981;
       --human-glow: rgba(16, 185, 129, 0.3);
+      --warn-color: #f59e0b;
       --text: #f9fafb;
       --text-muted: #9ca3af;
       --hairline: #374151;
@@ -60,15 +61,15 @@
     }
 
     .brand-icon {
-      width: 34px;
-      height: 34px;
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       box-shadow: 0 0 15px var(--accent-glow);
     }
 
@@ -91,7 +92,7 @@
 
     .header-links {
       display: flex;
-      gap: 1rem;
+      gap: 1.2rem;
       align-items: center;
     }
 
@@ -135,10 +136,10 @@
 
     main {
       flex: 1;
-      max-width: 1200px;
+      max-width: 1240px;
       width: 100%;
       margin: 0 auto;
-      padding: 2.5rem 1.5rem;
+      padding: 2rem 1.5rem;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 2rem;
@@ -157,7 +158,7 @@
       padding: 1.75rem;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.4rem;
       position: relative;
     }
 
@@ -203,11 +204,10 @@
       box-shadow: 0 2px 8px var(--accent-glow);
     }
 
-    /* Drop Zone */
     .dropzone {
       border: 2px dashed var(--hairline);
       border-radius: 14px;
-      padding: 2.5rem 1.5rem;
+      padding: 2.2rem 1.5rem;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -217,7 +217,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.75rem;
-      min-height: 220px;
+      min-height: 200px;
     }
 
     .dropzone:hover, .dropzone.dragover {
@@ -241,7 +241,6 @@
       color: var(--text-muted);
     }
 
-    /* URL Input */
     .url-input-container {
       display: none;
       flex-direction: column;
@@ -282,17 +281,6 @@
       box-shadow: 0 4px 14px var(--accent-glow);
     }
 
-    .btn-primary:hover:not(:disabled) {
-      filter: brightness(1.1);
-      transform: translateY(-1px);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* Threshold Slider */
     .slider-box {
       background: #0f172a;
       border: 1px solid var(--hairline);
@@ -321,44 +309,12 @@
       cursor: pointer;
     }
 
-    /* Samples Row */
-    .samples-row {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .samples-label {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .sample-pill {
-      background: #1e293b;
-      border: 1px solid var(--hairline);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .sample-pill:hover {
-      border-color: var(--accent);
-      background: rgba(99, 102, 241, 0.1);
-    }
-
-    /* Preview Card */
     .preview-box {
       border-radius: 12px;
       overflow: hidden;
       background: #000;
       position: relative;
-      max-height: 260px;
+      max-height: 240px;
       display: none;
       align-items: center;
       justify-content: center;
@@ -368,17 +324,17 @@
     .preview-box img {
       width: 100%;
       height: 100%;
-      max-height: 260px;
+      max-height: 240px;
       object-fit: contain;
     }
 
-    /* Results section */
+    /* Verdict Banner */
     .verdict-banner {
       border-radius: 14px;
-      padding: 1.5rem;
+      padding: 1.4rem;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.4rem;
       align-items: center;
       text-align: center;
       position: relative;
@@ -401,26 +357,79 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: -0.02em;
     }
 
-    .verdict-banner.ai .verdict-badge {
+    .verdict-banner.ai .verdict-badge { color: #f87171; }
+    .verdict-banner.human .verdict-badge { color: #34d399; }
+
+    /* Refund Card */
+    .refund-card {
+      background: #0f172a;
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .refund-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .refund-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .risk-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .risk-pill.high {
+      background: rgba(239, 68, 68, 0.2);
       color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    .verdict-banner.human .verdict-badge {
+    .risk-pill.medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .risk-pill.low {
+      background: rgba(16, 185, 129, 0.2);
       color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
     }
 
-    .verdict-conf {
-      font-size: 0.95rem;
+    .refund-action-line {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .refund-notes {
+      font-size: 0.8rem;
       color: var(--text-muted);
-    }
-
-    .verdict-conf strong {
-      color: #fff;
+      line-height: 1.4;
     }
 
     /* Gauge / Progress Bar */
@@ -430,7 +439,7 @@
       gap: 0.6rem;
       background: #0f172a;
       border-radius: 12px;
-      padding: 1.25rem;
+      padding: 1.1rem;
       border: 1px solid var(--hairline);
     }
 
@@ -461,7 +470,6 @@
       transition: width 0.4s ease;
     }
 
-    /* Meta Specs Grid */
     .specs-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -479,7 +487,7 @@
     }
 
     .spec-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       text-transform: uppercase;
       font-weight: 600;
@@ -488,21 +496,20 @@
 
     .spec-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       color: #fff;
     }
 
-    /* JSON Drawer */
     .json-box {
       background: #090d16;
       border: 1px solid var(--hairline);
       border-radius: 10px;
       padding: 1rem;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: #94a3b8;
-      max-height: 220px;
+      max-height: 200px;
       overflow-y: auto;
       white-space: pre-wrap;
     }
@@ -536,15 +543,9 @@
       padding: 2rem;
     }
 
-    .placeholder-icon {
-      font-size: 3rem;
-      opacity: 0.4;
-    }
-
-    /* Spinner */
     .spinner {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       border: 3px solid rgba(255, 255, 255, 0.2);
       border-top-color: #fff;
       border-radius: 50%;
@@ -569,20 +570,19 @@
 
   <header>
     <div class="brand">
-      <div class="brand-icon">⚡</div>
+      <div class="brand-icon">🛡️</div>
       <div>
-        <h1>AI Image Detector Backend</h1>
+        <h1>AI Image Detector & Return Verification Engine</h1>
       </div>
-      <span>Swin Transformer</span>
+      <span>ViT-Base</span>
     </div>
 
     <div class="header-links">
       <div class="badge-live">
         <span class="dot"></span>
-        <span id="model-status-text">Engine Ready</span>
+        <span>Engine Active (dima806/ai_vs_real)</span>
       </div>
-      <a href="/docs" target="_blank" class="header-link">Swagger API Docs ↗</a>
-      <a href="https://huggingface.co/umm-maybe/AI-image-detector" target="_blank" class="header-link">Model Page ↗</a>
+      <a href="/docs" target="_blank" class="header-link">Swagger Docs ↗</a>
     </div>
   </header>
 
@@ -600,14 +600,14 @@
       <!-- File Upload Zone -->
       <div id="upload-zone" class="dropzone" onclick="document.getElementById('file-input').click()">
         <input type="file" id="file-input" accept="image/*" style="display: none" onchange="handleFileSelect(event)">
-        <div class="dropzone-icon">🖼️</div>
-        <div class="dropzone-text">Drop an image here or click to browse</div>
-        <div class="dropzone-sub">Supports PNG, JPG, JPEG, WebP, BMP (up to 20MB)</div>
+        <div class="dropzone-icon">📷</div>
+        <div class="dropzone-text">Drop damaged product photo or customer claim image</div>
+        <div class="dropzone-sub">Supports PNG, JPG, JPEG, WebP, BMP</div>
       </div>
 
       <!-- URL Input Zone -->
       <div id="url-zone" class="url-input-container">
-        <input type="url" id="url-input" class="input-field" placeholder="https://example.com/image.jpg" />
+        <input type="url" id="url-input" class="input-field" placeholder="https://example.com/product_damage.jpg" />
         <button class="btn-primary" onclick="analyzeUrl()">
           <span>🔍</span> Analyze URL
         </button>
@@ -626,39 +626,30 @@
         </div>
         <input type="range" id="threshold-slider" min="0.10" max="0.90" step="0.05" value="0.50" oninput="updateThreshold(this.value)">
         <div style="font-size: 0.75rem; color: var(--text-muted);">
-          Lower threshold = more sensitive to AI artifacts. Higher threshold = stricter human proof.
+          Adjust classification sensitivity threshold (default 0.50).
         </div>
-      </div>
-
-      <!-- Test Presets -->
-      <div class="samples-row">
-        <span class="samples-label">Quick Test:</span>
-        <button class="sample-pill" onclick="testPreset('https://images.unsplash.com/photo-1546768292-fb12f6c92568')">📷 Unsplash Photo</button>
-        <button class="sample-pill" onclick="testPreset('https://raw.githubusercontent.com/huggingface/documentation-images/main/hub/parrots.png')">🦜 Parrots Demo</button>
       </div>
     </div>
 
     <!-- Right Column: Results & Telemetry -->
     <div class="panel">
       <div class="panel-header">
-        <h2 class="panel-title"><span>📊</span> Detection Telemetry</h2>
+        <h2 class="panel-title"><span>📊</span> Fraud & Authenticity Telemetry</h2>
         <span id="timing-badge" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: var(--text-muted);">0.0 ms</span>
       </div>
 
-      <!-- Placeholder when nothing analyzed -->
       <div id="placeholder-box" class="placeholder-state">
-        <div class="placeholder-icon">🔬</div>
+        <div style="font-size: 3rem; opacity: 0.4;">🔬</div>
         <div style="font-weight: 600; font-size: 1.05rem;">Awaiting Image Input</div>
         <div style="font-size: 0.85rem; max-width: 320px;">
-          Upload a file or enter an image URL to run real-time inference through the Swin Transformer engine.
+          Upload a damaged item or customer claim photo to verify if it is authentic or AI-generated.
         </div>
       </div>
 
-      <!-- Loading Spinner -->
       <div id="loading-box" class="placeholder-state" style="display: none;">
         <div class="spinner"></div>
-        <div style="font-weight: 600; font-size: 1.05rem; margin-top: 1rem;">Analyzing Image...</div>
-        <div style="font-size: 0.85rem; color: var(--text-muted);">Extracting visual transformer patch embeddings</div>
+        <div style="font-weight: 600; font-size: 1.05rem; margin-top: 1rem;">Analyzing Image Artifacts...</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Extracting Vision Transformer embeddings and EXIF tags</div>
       </div>
 
       <!-- Real Results Box -->
@@ -671,19 +662,29 @@
             <span id="verdict-text">AI-GENERATED</span>
           </div>
           <div class="verdict-conf">
-            Model Confidence: <strong id="verdict-confidence">81.15%</strong>
+            Model Confidence: <strong id="verdict-confidence">79.54%</strong>
           </div>
+        </div>
+
+        <!-- Refund Risk Card -->
+        <div class="refund-card">
+          <div class="refund-header">
+            <span class="refund-title">🛡️ Return / Refund Risk Analysis</span>
+            <span id="refund-risk-pill" class="risk-pill high">HIGH RISK</span>
+          </div>
+          <div id="refund-action" class="refund-action-line">ACTION: FLAGGED_FOR_MANUAL_REVIEW</div>
+          <div id="refund-notes" class="refund-notes">High confidence AI-generated damage or synthetic media detected. Do not auto-refund.</div>
         </div>
 
         <!-- Gauge Bar -->
         <div class="gauge-container">
           <div class="gauge-label-row">
-            <span style="color: #f87171;">🤖 Artificial: <span id="gauge-ai-val">81.1%</span></span>
-            <span style="color: #34d399;">👤 Human: <span id="gauge-human-val">18.9%</span></span>
+            <span style="color: #f87171;">🤖 AI / Fake: <span id="gauge-ai-val">79.5%</span></span>
+            <span style="color: #34d399;">👤 Genuine / Real: <span id="gauge-human-val">20.5%</span></span>
           </div>
           <div class="gauge-bar-wrapper">
-            <div id="gauge-ai-fill" class="gauge-bar-ai" style="width: 81%;"></div>
-            <div id="gauge-human-fill" class="gauge-bar-human" style="width: 19%;"></div>
+            <div id="gauge-ai-fill" class="gauge-bar-ai" style="width: 79.5%;"></div>
+            <div id="gauge-human-fill" class="gauge-bar-human" style="width: 20.5%;"></div>
           </div>
         </div>
 
@@ -691,19 +692,19 @@
         <div class="specs-grid">
           <div class="spec-item">
             <div class="spec-label">Inference Latency</div>
-            <div class="spec-value" id="spec-latency">224 ms</div>
+            <div class="spec-value" id="spec-latency">221 ms</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Camera EXIF</div>
+            <div class="spec-value" id="spec-exif">Not Found</div>
           </div>
           <div class="spec-item">
             <div class="spec-label">Resolution</div>
-            <div class="spec-value" id="spec-resolution">1536 × 674</div>
+            <div class="spec-value" id="spec-resolution">1024 × 538</div>
           </div>
           <div class="spec-item">
-            <div class="spec-label">Target Architecture</div>
-            <div class="spec-value">Swin-B (224px)</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-label">Compute Device</div>
-            <div class="spec-value" id="spec-device">CPU</div>
+            <div class="spec-label">Model Architecture</div>
+            <div class="spec-value">ViT-Base (224px)</div>
           </div>
         </div>
 
@@ -722,16 +723,13 @@
   </main>
 
   <footer>
-    Powered by <strong>umm-maybe/AI-image-detector</strong> &middot; Swin Transformer &middot; FastAPI Engine &middot; Open Source
+    Powered by <strong>dima806/ai_vs_real_image_detection</strong> &middot; Google Vision Transformer &middot; Return Fraud Prevention
   </footer>
 
   <script>
     let currentThreshold = 0.50;
-    let currentImageFile = null;
-    let currentImageUrl = null;
     let lastResult = null;
 
-    // Drag and Drop listeners
     const dropzone = document.getElementById('upload-zone');
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -760,10 +758,6 @@
     }
 
     function processSelectedFile(file) {
-      currentImageFile = file;
-      currentImageUrl = null;
-
-      // Show preview
       const reader = new FileReader();
       reader.onload = (e) => {
         const previewImg = document.getElementById('preview-img');
@@ -778,8 +772,6 @@
     function updateThreshold(val) {
       currentThreshold = parseFloat(val);
       document.getElementById('threshold-val').innerText = currentThreshold.toFixed(2);
-      
-      // If we already have a result, dynamically re-calculate verdict without refetching if available
       if (lastResult && lastResult.scores) {
         recomputeVerdict();
       }
@@ -789,7 +781,7 @@
       if (!lastResult) return;
       const art = lastResult.scores.artificial;
       const isAI = art >= currentThreshold;
-      const verdict = isAI ? "AI-Generated" : "Human-Created";
+      const verdict = isAI ? "AI-Generated" : "Human-Created (Real)";
       const confidence = isAI ? art : lastResult.scores.human;
 
       lastResult.is_ai_generated = isAI;
@@ -828,8 +820,6 @@
         alert("Please enter a valid image URL");
         return;
       }
-      currentImageUrl = url;
-      currentImageFile = null;
 
       document.getElementById('preview-img').src = url;
       document.getElementById('preview-box').style.display = 'flex';
@@ -850,12 +840,6 @@
       } finally {
         showLoading(false);
       }
-    }
-
-    function testPreset(url) {
-      switchTab('url');
-      document.getElementById('url-input').value = url;
-      analyzeUrl();
     }
 
     function showLoading(isLoading) {
@@ -884,10 +868,20 @@
       } else {
         verdictCard.className = 'verdict-banner human';
         verdictIcon.innerText = '👤';
-        verdictText.innerText = 'HUMAN-CREATED';
+        verdictText.innerText = 'GENUINE / REAL';
       }
 
       verdictConf.innerText = data.confidence_percentage;
+
+      // Refund Card
+      const rf = data.refund_fraud_analysis;
+      if (rf) {
+        const pill = document.getElementById('refund-risk-pill');
+        pill.innerText = rf.risk_level.replace('_', ' ');
+        pill.className = 'risk-pill ' + (rf.risk_level === 'HIGH_RISK' ? 'high' : (rf.risk_level === 'MEDIUM_RISK' ? 'medium' : 'low'));
+        document.getElementById('refund-action').innerText = 'ACTION: ' + rf.recommended_action;
+        document.getElementById('refund-notes').innerText = rf.notes;
+      }
 
       // Gauges
       const artPct = (data.scores.artificial * 100).toFixed(1);
@@ -902,10 +896,10 @@
       document.getElementById('spec-latency').innerText = data.inference_time_ms + ' ms';
       if (data.image_size) {
         document.getElementById('spec-resolution').innerText = `${data.image_size.width} × ${data.image_size.height}`;
-      } else {
-        document.getElementById('spec-resolution').innerText = 'N/A';
       }
-      document.getElementById('spec-device').innerText = (data.device || 'CPU').toUpperCase();
+      
+      const hasExif = data.exif_metadata && data.exif_metadata.has_camera_exif;
+      document.getElementById('spec-exif').innerText = hasExif ? 'Authentic EXIF' : 'None / Stripped';
 
       // JSON Viewer
       document.getElementById('json-viewer').innerText = JSON.stringify(data, null, 2);

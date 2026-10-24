@@ -1,11 +1,6 @@
 """
-Command-Line Interface (CLI) for AI Image Detector.
-Quickly test local files or remote URLs without starting the HTTP server.
-
-Usage:
-    python cli.py path/to/image.jpg
-    python cli.py --url https://example.com/art.png
-    python cli.py --batch image1.jpg image2.png
+Command-Line Interface (CLI) for AI Image Detector & Refund Fraud Verification.
+Quickly test local files or remote URLs.
 """
 
 import sys
@@ -39,24 +34,34 @@ def format_output(result: dict):
     human_score = result["scores"]["human"] * 100
     ms = result["inference_time_ms"]
     device = result["device"].upper()
+    refund = result.get("refund_fraud_analysis", {})
 
-    badge = "[AI-GENERATED]" if result["is_ai_generated"] else "[HUMAN-CREATED]"
+    badge = "[AI-GENERATED]" if result["is_ai_generated"] else "[GENUINE / REAL]"
     
-    print("\n" + "=" * 50)
-    print(f"Verdict:            {badge} {verdict}")
-    print(f"Confidence:         {confidence}")
-    print(f"Artificial Score:   {ai_score:.2f}%")
-    print(f"Human Score:        {human_score:.2f}%")
-    print(f"Decision Threshold: {result['threshold']}")
+    print("\n" + "=" * 55)
+    print(f"Verdict:              {badge} {verdict}")
+    print(f"Confidence:           {confidence}")
+    print(f"AI/Fake Probability:  {ai_score:.2f}%")
+    print(f"Real/Authentic Score: {human_score:.2f}%")
+    print(f"Decision Threshold:   {result['threshold']}")
     if result.get("image_size"):
-        print(f"Image Resolution:   {result['image_size']['width']}x{result['image_size']['height']} px")
-    print(f"Inference Latency:  {ms:.2f} ms")
-    print(f"Device:             {device}")
-    print("=" * 50 + "\n")
+        print(f"Image Resolution:     {result['image_size']['width']}x{result['image_size']['height']} px")
+    print(f"Inference Latency:    {ms:.2f} ms")
+    print(f"Model Architecture:   {result['model']}")
+    print(f"Compute Device:       {device}")
+    
+    if refund:
+        print("-" * 55)
+        print("RETURN / REFUND CLAIM ANALYSIS:")
+        print(f"  Risk Level:         {refund.get('risk_level')}")
+        print(f"  Recommended Action: {refund.get('recommended_action')}")
+        print(f"  Camera EXIF Found:  {refund.get('has_camera_exif')}")
+        print(f"  Policy Notes:       {refund.get('notes')}")
+    print("=" * 55 + "\n")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Detect whether an image is AI-generated.")
+    parser = argparse.ArgumentParser(description="Detect whether an image is AI-generated and assess refund fraud risk.")
     parser.add_argument("image", nargs="?", help="Path to image file to analyze")
     parser.add_argument("--url", help="Direct URL to an image to analyze")
     parser.add_argument("--threshold", type=float, default=0.5, help="Classification threshold (default 0.5)")
@@ -69,8 +74,8 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    print("[INFO] Initializing detector model...")
-    detector = get_detector()
+    print("[INFO] Initializing detector engine...")
+    detector = get_detector(force_reload=True)
 
     if args.batch:
         print(f"[INFO] Analyzing batch of {len(args.batch)} images...")
