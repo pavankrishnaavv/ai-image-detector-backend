@@ -1,6 +1,6 @@
 """
 FastAPI Server for AI Image Detector & Refund Fraud Verification Engine.
-Powered by 'dima806/ai_vs_real_image_detection' Vision Transformer (ViT).
+Supports Sightengine GenAI Cloud API and Local ViT-Base Engine.
 """
 
 import os
@@ -16,26 +16,25 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     except Exception:
         pass
 
-from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Body, status
+from fastapi import FastAPI, File, UploadFile, Query, Header, HTTPException, Body, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, HttpUrl
 
-# Ensure parent directory is on sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from engine.detector import get_detector, AIImageDetector
 
-# Model warm-up on startup
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("[INFO] Initializing AI Image Detector engine...")
     detector = get_detector(force_reload=True)
     info = detector.get_info()
-    print(f"[READY] Detector engine ready. Source: {info['model_source']}, Device: {info['device']}, Model: {info['model_name']}")
+    print(f"[READY] Engine ready. Active provider: {info['active_provider']}, Sightengine configured: {info['sightengine_configured']}")
     yield
     print("[STOP] Shutting down AI Image Detector engine...")
 
@@ -43,21 +42,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI Image Detector & Refund Fraud Verification Engine",
     description="""
-High-throughput REST API backend engine to detect AI-generated vs authentic images 
-using the fine-tuned `dima806/ai_vs_real_image_detection` Vision Transformer (ViT) architecture.
-Includes automated Camera EXIF metadata extraction and Return/Refund Fraud risk scoring.
-
-### Supported Input Modes:
-- 📤 **File Upload (`multipart/form-data`)**: Upload raw image files (PNG, JPG, WebP, etc.)
-- 🔗 **Image URL (`application/json`)**: Analyze any publicly accessible image link
-- 🔤 **Base64 String (`application/json`)**: Send data URI or raw base64 encoded strings
-- 📦 **Batch Analysis**: Analyze multiple images in a single call for high-scale workflows
+Industry-grade REST API backend to detect AI-generated vs authentic images.
+Integrates Sightengine's GenAI detection API with offline Local ViT-Base fallback,
+Camera EXIF metadata auditing, and Return & Refund Fraud risk scoring.
     """,
-    version="2.0.0",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
-# Enable CORS for universal integration across frontend websites
 ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 
 app.add_middleware(
@@ -68,7 +60,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static directory for the test UI
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -77,12 +68,23 @@ if os.path.isdir(STATIC_DIR):
 # Pydantic Schemas
 class URLDetectionRequest(BaseModel):
     url: str = Field(..., description="Direct HTTP or HTTPS URL to an image")
-    threshold: Optional[float] = Field(0.5, ge=0.0, le=1.0, description="Decision threshold for AI generation")
+    threshold: Optional[float] = Field(0.5, ge=0.0, le=1.0)
+    provider: Optional[str] = Field("auto", description="'auto', 'sightengine', or 'local'")
+    sightengine_user: Optional[str] = None
+    sightengine_secret: Optional[str] = None
 
 
 class Base64DetectionRequest(BaseModel):
     image_base64: str = Field(..., description="Base64 encoded string or Data URI")
-    threshold: Optional[float] = Field(0.5, ge=0.0, le=1.0, description="Decision threshold for AI generation")
+    threshold: Optional[float] = Field(0.5, ge=0.0, le=1.0)
+    provider: Optional[str] = Field("auto")
+    sightengine_user: Optional[str] = None
+    sightengine_secret: Optional[str] = None
+
+
+class SightengineConfig(BaseModel):
+    api_user: str
+    api_secret: str
 
 
 class ScoreBreakdown(BaseModel):
@@ -113,6 +115,7 @@ class RefundFraudAnalysis(BaseModel):
 
 class DetectionResponse(BaseModel):
     success: bool
+    provider: str
     is_ai_generated: bool
     verdict: str
     confidence: float
@@ -131,16 +134,14 @@ class DetectionResponse(BaseModel):
 # Endpoints
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard"])
 async def index():
-    """Serves the interactive web test interface."""
     index_file = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
-    return HTMLResponse("<h2>AI Image Detector Engine is Running. Visit <a href='/docs'>/docs</a> for API.</h2>")
+    return HTMLResponse("<h2>AI Image Detector Engine is Running.</h2>")
 
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Service health status check."""
     return {
         "status": "healthy",
         "timestamp": time.time(),
@@ -150,26 +151,49 @@ async def health_check():
 
 @app.get("/api/v1/info", tags=["Metadata"])
 async def model_info():
-    """Returns engine specifications, model architecture, and operational metadata."""
     detector = get_detector()
     return detector.get_info()
 
 
+@app.post("/api/v1/configure-sightengine", tags=["Configuration"])
+async def configure_sightengine(config: SightengineConfig):
+    """Dynamically set Sightengine credentials without restarting."""
+    os.environ["SIGHTENGINE_API_USER"] = config.api_user.strip()
+    os.environ["SIGHTENGINE_API_SECRET"] = config.api_secret.strip()
+    detector = get_detector(
+        force_reload=True,
+        sightengine_user=config.api_user.strip(),
+        sightengine_secret=config.api_secret.strip(),
+    )
+    return {
+        "status": "success",
+        "message": "Sightengine credentials saved successfully.",
+        "sightengine_configured": True,
+    }
+
+
 @app.post("/api/v1/detect", response_model=DetectionResponse, tags=["Detection"])
 async def detect_uploaded_image(
-    file: UploadFile = File(..., description="Image file to analyze (PNG, JPG, WebP, BMP, etc.)"),
-    threshold: float = Query(0.5, ge=0.0, le=1.0, description="Sensitivity threshold for AI detection"),
+    file: UploadFile = File(..., description="Image file to analyze"),
+    threshold: float = Query(0.5, ge=0.0, le=1.0),
+    provider: str = Query("auto", description="'auto', 'sightengine', or 'local'"),
+    x_sightengine_user: Optional[str] = Header(None, alias="X-Sightengine-User"),
+    x_sightengine_secret: Optional[str] = Header(None, alias="X-Sightengine-Secret"),
 ):
-    """
-    Detect whether an uploaded image file is AI-generated and assess return/refund fraud risk.
-    """
+    """Detect whether an uploaded image is AI-generated and assess refund fraud risk."""
     detector = get_detector()
     try:
         content = await file.read()
         if not content:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-        
-        result = detector.predict(content, threshold=threshold)
+
+        result = detector.predict(
+            content,
+            threshold=threshold,
+            provider=provider,
+            sightengine_user=x_sightengine_user,
+            sightengine_secret=x_sightengine_secret,
+        )
         if not result.get("success", False):
             raise HTTPException(status_code=422, detail=result.get("error", "Failed to process image."))
         return result
@@ -181,14 +205,17 @@ async def detect_uploaded_image(
 
 @app.post("/api/v1/detect/url", response_model=DetectionResponse, tags=["Detection"])
 async def detect_image_url(request: URLDetectionRequest):
-    """
-    Detect whether an image from a public URL is AI-generated.
-    """
     detector = get_detector()
     try:
-        result = detector.predict(request.url, threshold=request.threshold)
+        result = detector.predict(
+            request.url,
+            threshold=request.threshold,
+            provider=request.provider,
+            sightengine_user=request.sightengine_user,
+            sightengine_secret=request.sightengine_secret,
+        )
         if not result.get("success", False):
-            raise HTTPException(status_code=422, detail=result.get("error", "Failed to fetch or process image URL."))
+            raise HTTPException(status_code=422, detail=result.get("error", "Failed to analyze URL."))
         return result
     except HTTPException:
         raise
@@ -198,14 +225,17 @@ async def detect_image_url(request: URLDetectionRequest):
 
 @app.post("/api/v1/detect/base64", response_model=DetectionResponse, tags=["Detection"])
 async def detect_image_base64(request: Base64DetectionRequest):
-    """
-    Detect whether a base64-encoded image is AI-generated.
-    """
     detector = get_detector()
     try:
-        result = detector.predict(request.image_base64, threshold=request.threshold)
+        result = detector.predict(
+            request.image_base64,
+            threshold=request.threshold,
+            provider=request.provider,
+            sightengine_user=request.sightengine_user,
+            sightengine_secret=request.sightengine_secret,
+        )
         if not result.get("success", False):
-            raise HTTPException(status_code=422, detail=result.get("error", "Failed to decode or process base64 image."))
+            raise HTTPException(status_code=422, detail=result.get("error", "Failed to decode base64."))
         return result
     except HTTPException:
         raise
@@ -216,18 +246,25 @@ async def detect_image_base64(request: Base64DetectionRequest):
 @app.post("/api/v1/detect/batch", tags=["Detection"])
 async def detect_batch_images(
     files: List[UploadFile] = File(..., description="Multiple image files to classify"),
-    threshold: float = Query(0.5, ge=0.0, le=1.0, description="Decision threshold"),
+    threshold: float = Query(0.5, ge=0.0, le=1.0),
+    provider: str = Query("auto", description="'auto', 'sightengine', or 'local'"),
+    x_sightengine_user: Optional[str] = Header(None, alias="X-Sightengine-User"),
+    x_sightengine_secret: Optional[str] = Header(None, alias="X-Sightengine-Secret"),
 ):
-    """
-    Batch detection: classify multiple uploaded images simultaneously.
-    """
+    """Batch detection: classify multiple uploaded images simultaneously."""
     detector = get_detector()
     results = []
 
     for f in files:
         try:
             content = await f.read()
-            res = detector.predict(content, threshold=threshold)
+            res = detector.predict(
+                content,
+                threshold=threshold,
+                provider=provider,
+                sightengine_user=x_sightengine_user,
+                sightengine_secret=x_sightengine_secret,
+            )
             res["filename"] = f.filename
             results.append(res)
         except Exception as e:

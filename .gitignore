@@ -32,7 +32,9 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Logs & temp files
+# Environment secrets
+.env
+*.env.local
 *.log
 .coverage
 .pytest_cache/

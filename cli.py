@@ -1,6 +1,6 @@
 """
 Command-Line Interface (CLI) for AI Image Detector & Refund Fraud Verification.
-Quickly test local files or remote URLs.
+Supports both Sightengine Cloud API and Local ViT Engine.
 """
 
 import sys
@@ -15,7 +15,6 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     except Exception:
         pass
 
-# Ensure backend root is in python path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
@@ -34,62 +33,64 @@ def format_output(result: dict):
     human_score = result["scores"]["human"] * 100
     ms = result["inference_time_ms"]
     device = result["device"].upper()
+    provider = result.get("provider", "Unknown")
     refund = result.get("refund_fraud_analysis", {})
 
     badge = "[AI-GENERATED]" if result["is_ai_generated"] else "[GENUINE / REAL]"
     
-    print("\n" + "=" * 55)
+    print("\n" + "=" * 58)
+    print(f"Provider:             {provider}")
     print(f"Verdict:              {badge} {verdict}")
     print(f"Confidence:           {confidence}")
-    print(f"AI/Fake Probability:  {ai_score:.2f}%")
-    print(f"Real/Authentic Score: {human_score:.2f}%")
+    print(f"AI / Fake Score:      {ai_score:.2f}%")
+    print(f"Real / Authentic:     {human_score:.2f}%")
     print(f"Decision Threshold:   {result['threshold']}")
     if result.get("image_size"):
         print(f"Image Resolution:     {result['image_size']['width']}x{result['image_size']['height']} px")
     print(f"Inference Latency:    {ms:.2f} ms")
-    print(f"Model Architecture:   {result['model']}")
-    print(f"Compute Device:       {device}")
+    print(f"Model:                {result['model']}")
+    print(f"Execution Target:     {device}")
     
     if refund:
-        print("-" * 55)
+        print("-" * 58)
         print("RETURN / REFUND CLAIM ANALYSIS:")
         print(f"  Risk Level:         {refund.get('risk_level')}")
         print(f"  Recommended Action: {refund.get('recommended_action')}")
         print(f"  Camera EXIF Found:  {refund.get('has_camera_exif')}")
         print(f"  Policy Notes:       {refund.get('notes')}")
-    print("=" * 55 + "\n")
+    print("=" * 58 + "\n")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Detect whether an image is AI-generated and assess refund fraud risk.")
     parser.add_argument("image", nargs="?", help="Path to image file to analyze")
     parser.add_argument("--url", help="Direct URL to an image to analyze")
+    parser.add_argument("--provider", choices=["auto", "sightengine", "local"], default="auto", help="Detection provider (default: auto)")
     parser.add_argument("--threshold", type=float, default=0.5, help="Classification threshold (default 0.5)")
+    parser.add_argument("--sightengine-user", help="Sightengine API User ID")
+    parser.add_argument("--sightengine-secret", help="Sightengine API Secret")
     parser.add_argument("--json", action="store_true", help="Output raw JSON format")
-    parser.add_argument("--batch", nargs="+", help="Multiple image paths for batch classification")
 
     args = parser.parse_args()
 
-    if not args.image and not args.url and not args.batch:
+    if not args.image and not args.url:
         parser.print_help()
         sys.exit(1)
 
-    print("[INFO] Initializing detector engine...")
-    detector = get_detector(force_reload=True)
-
-    if args.batch:
-        print(f"[INFO] Analyzing batch of {len(args.batch)} images...")
-        results = detector.predict_batch(args.batch, threshold=args.threshold)
-        for path, res in zip(args.batch, results):
-            print(f"\n--- File: {path} ---")
-            if args.json:
-                print(json.dumps(res, indent=2))
-            else:
-                format_output(res)
-        return
+    detector = get_detector(
+        sightengine_user=args.sightengine_user,
+        sightengine_secret=args.sightengine_secret,
+        preferred_provider=args.provider,
+    )
 
     target = args.url if args.url else args.image
-    res = detector.predict(target, threshold=args.threshold)
+    res = detector.predict(
+        target,
+        threshold=args.threshold,
+        provider=args.provider,
+        sightengine_user=args.sightengine_user,
+        sightengine_secret=args.sightengine_secret,
+    )
 
     if args.json:
         print(json.dumps(res, indent=2))

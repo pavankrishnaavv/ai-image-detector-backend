@@ -1,116 +1,96 @@
 # 🛡️ AI Image Detector & Refund Fraud Verification Engine
+### Powered by Sightengine GenAI API + Local Vision Transformer
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com)
-[![Transformers](https://img.shields.io/badge/🤗%20Transformers-Google%20ViT-yellow.svg)](https://huggingface.co/dima806/ai_vs_real_image_detection)
+[![Sightengine](https://img.shields.io/badge/API-Sightengine%20GenAI-blueviolet.svg)](https://sightengine.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance, production-ready backend engine and REST API designed to detect **AI-generated / synthetic media** vs **authentic real-world photography**. Fine-tuned specifically for physical products, damaged goods, e-commerce return claims, and refund fraud prevention.
+An enterprise-ready backend engine and REST API designed to detect **AI-generated images** (Midjourney, DALL-E 3, FLUX, Stable Diffusion) and protect platforms against **return & refund fraud** (fake damaged products, AI-inpainted cracks, synthetic claim receipts).
 
-Powered by the fine-tuned Google Vision Transformer architecture [**`dima806/ai_vs_real_image_detection`**](https://huggingface.co/dima806/ai_vs_real_image_detection) paired with automated Camera EXIF sensor auditing.
-
----
-
-## 🌟 Key Highlights
-
-- 🎯 **Photorealistic & Damaged Good Detection**: Unlike legacy 2022 models that only detect digital paintings, this engine accurately flags photorealistic AI generations (Midjourney v6, FLUX, SDXL) and AI-inpainted damage (fake cracked screens, split casings, broken devices).
-- 🛡️ **Return & Refund Fraud Triage**: Automatically scores claims into `HIGH_RISK`, `MEDIUM_RISK`, or `LOW_RISK` and recommends operational actions (`FLAGGED_FOR_MANUAL_REVIEW`, `APPROVED_FOR_PROCESSING`).
-- 📷 **Camera Sensor EXIF Audit**: Inspects hardware lens metadata (`Apple iPhone`, `Samsung Galaxy`, `FocalLength`, `ShutterSpeed`) to catch downloaded or stripped synthetic files.
-- 🚀 **Ultra-Fast CPU Inference**: ~180ms per image on CPU (sub-25ms with CUDA GPU acceleration).
-- 📦 **100% Offline & Pre-bundled**: Includes pre-cached model weights in `./model_weights` so you never suffer runtime Hugging Face rate limits or outages.
-- 🖥️ **Interactive Web UI**: Test any file upload or URL directly from your browser at `http://localhost:8000/`.
+Features a **Hybrid Architecture**:
+- ⚡ **Sightengine GenAI Cloud API**: Industry-leading accuracy (99%+ detection on modern DALL-E 3, FLUX, Midjourney v6). Includes **2,000 free operations/month**.
+- 💻 **Offline Local Vision Transformer**: Bundled local Google ViT model (`dima806/ai_vs_real_image_detection`) for zero-cost, offline fallback.
+- 📷 **Camera Sensor EXIF Audit**: Verifies real smartphone lens metadata (`Apple iPhone`, `Samsung Galaxy`, `FocalLength`, `ShutterSpeed`) to catch downloaded or synthetic files.
+- 🛡️ **Automated Refund Triage**: Classifies claims into `HIGH_RISK`, `MEDIUM_RISK`, or `LOW_RISK` with policy action recommendations.
 
 ---
 
 ## 📑 Table of Contents
-1. [Model Architecture & Capabilities](#-model-architecture--capabilities)
-2. [Refund & Return Fraud Pipeline](#-refund--return-fraud-pipeline)
-3. [Quickstart & Installation](#-quickstart--installation)
-4. [Interactive Testing Dashboard](#-interactive-testing-dashboard)
-5. [CLI Tool Usage](#-cli-tool-usage)
-6. [REST API Documentation](#-rest-api-documentation)
-7. [Website Integration Guide](#-website-integration-guide)
-   - [Vanilla JavaScript / Fetch API](#1-vanilla-javascript--fetch-api)
+1. [Sightengine Setup (Free Tier)](#-sightengine-setup-free-tier)
+2. [Quickstart & Installation](#-quickstart--installation)
+3. [Interactive Web Dashboard](#-interactive-web-dashboard)
+4. [CLI Tool Usage](#-cli-tool-usage)
+5. [REST API Documentation](#-rest-api-documentation)
+6. [Website Integration Guide](#-website-integration-guide)
+   - [Vanilla JavaScript (Return Portal)](#1-vanilla-javascript--return-portal)
    - [React / Next.js Component](#2-react--nextjs-integration)
-   - [Node.js / Express Backend Proxy](#3-nodejs--express-backend-proxy)
+   - [Node.js / Express Proxy](#3-nodejs--express-backend-proxy)
    - [Python Client](#4-python-client)
-8. [Extensive & Production Use Guide](#-extensive--production-use-guide)
-9. [Running Automated Tests](#-running-automated-tests)
-10. [License](#-license)
+7. [Extensive & Production Use Guide](#-extensive--production-use-guide)
+8. [Running Automated Tests](#-running-automated-tests)
+9. [License](#-license)
 
 ---
 
-## 🧠 Model Architecture & Capabilities
+## 🔑 Sightengine Setup (Free Tier)
 
-- **Model Identifier**: [`dima806/ai_vs_real_image_detection`](https://huggingface.co/dima806/ai_vs_real_image_detection)
-- **Base Architecture**: `ViTForImageClassification` (Google Vision Transformer, `google/vit-base-patch16-224-in21k`).
-- **Input Resolution**: 224 × 224 patches with bicubic interpolation.
-- **Labels**: Binary classification (`REAL`, `FAKE`).
-- **Why this beats older models for returns/refunds**:
-  - Legacy models (such as `umm-maybe/AI-image-detector`) were trained strictly on 2022 digital illustrations and fantasy art. When presented with realistic photos of physical products (like a cracked keyboard or damaged electronics), they fail and classify them as human.
-  - `dima806/ai_vs_real_image_detection` is trained on synthetic photos and physical objects, detecting the subtle texture smoothing and edge artifacts of modern diffusion.
+Sightengine provides **2,000 free operations every month** with no credit card required.
 
----
+1. **Sign Up**: Go to [https://sightengine.com/](https://sightengine.com/) and register a free account.
+2. **Get Credentials**: Copy your **`api_user`** and **`api_secret`** from the dashboard.
+3. **Configure the Backend**:
+   - **Method A (via `.env`)**:
+     Open `.env` in the repository root and add:
+     ```env
+     SIGHTENGINE_API_USER=your_api_user_here
+     SIGHTENGINE_API_SECRET=your_api_secret_here
+     ```
+   - **Method B (via Web Dashboard)**:
+     Open `http://localhost:8000/`, click **⚙️ Sightengine Key** in the top-right header, paste your credentials, and click **Save & Activate**.
+   - **Method C (per API Request)**:
+     Pass headers `X-Sightengine-User` and `X-Sightengine-Secret` with any API call.
 
-## 🛡️ Refund & Return Fraud Pipeline
-
-When a customer submits a refund claim with a photo of a "damaged" product:
-
-```
-[ Customer Claim Photo ] ──> [ Vision Transformer Model ] ──> AI / Fake Probability (0.0 - 1.0)
-                             [ Camera EXIF Extractor    ] ──> Has Genuine Smartphone Lens Tags?
-                                          │
-                                          ▼
-                             [ Refund Risk Decision Engine ]
-                                          │
-                 ┌────────────────────────┼────────────────────────┐
-                 ▼                        ▼                        ▼
-           [ HIGH RISK ]           [ MEDIUM RISK ]            [ LOW RISK ]
-          (AI Score > 75%)       (AI 40-75% / No EXIF)     (AI < 40% + Has EXIF)
-                 │                        │                        │
-         Flag for Manual          Request Live Video           Auto-Approve
-          Agent Review               or Invoice                   Refund
-```
+*(If Sightengine credentials are not provided, the engine automatically uses the bundled local ViT model as an offline fallback!)*
 
 ---
 
-## 🏗️ Architecture & Project Structure
+## 🏗️ Project Structure
 
 ```text
 ai-image-detector-backend/
 ├── engine/
 │   ├── __init__.py          # Package initialization
-│   └── detector.py          # ViT inference engine + EXIF extraction + Refund triage
-├── model_weights/           # Bundled model weights & preprocessor configs
+│   ├── detector.py          # Unified Hybrid Detection Engine + EXIF + Refund Triage
+│   └── sightengine_client.py# Sightengine GenAI API connector
+├── model_weights/           # Bundled offline ViT model weights & preprocessor
 │   ├── config.json
 │   ├── preprocessor_config.json
 │   └── model.safetensors    # Tracked with Git LFS
 ├── static/
-│   └── index.html           # Interactive web dashboard with Refund Telemetry
+│   └── index.html           # Interactive dashboard with Sightengine settings modal
 ├── tests/
 │   ├── __init__.py
 │   ├── test_engine.py       # Engine unit tests
 │   ├── test_api.py          # FastAPI endpoint integration tests
 │   ├── generate_test_images.py
-│   └── sample_images/       # Sample fixtures
-├── cli.py                   # Terminal testing tool with refund risk reporting
-├── main.py                  # FastAPI server with REST endpoints
-├── save_model.py            # Utility script to export/cache weights
+│   └── sample_images/       # Test fixtures
+├── cli.py                   # Terminal testing tool
+├── main.py                  # FastAPI REST API server
+├── save_model.py            # Model export utility
 ├── requirements.txt         # Dependencies
 ├── Dockerfile               # Container definition
 ├── docker-compose.yml       # Docker Compose setup
-├── .gitattributes           # Git LFS rules for model weights
-└── README.md                # Comprehensive documentation
+├── .env.example             # Environment template
+└── README.md                # Documentation
 ```
 
 ---
 
 ## 🚀 Quickstart & Installation
 
-### Option 1: Run Locally (Python 3.10+)
-
 ```bash
-# 1. Clone repo
+# 1. Clone repository
 git clone https://github.com/<your-username>/ai-image-detector-backend.git
 cd ai-image-detector-backend
 
@@ -122,58 +102,66 @@ python -m venv venv
 # 3. Install requirements
 pip install -r requirements.txt
 
-# 4. Start the backend
+# 4. Configure .env (Optional: add Sightengine keys)
+cp .env.example .env
+
+# 5. Start the backend
 python main.py
 ```
 
 Open:
 - **Interactive Web UI**: [http://localhost:8000/](http://localhost:8000/)
-- **Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Interactive Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-### Option 2: Run with Docker
+## 🖥️ Interactive Web Dashboard
 
-```bash
-docker compose up --build -d
-```
-
-The service is immediately available at `http://localhost:8000`.
+Open `http://localhost:8000/`:
+- **Drag-and-Drop Image Uploader**: Drop any damaged item or customer claim photo.
+- **Provider Status Indicator**: Displays whether Sightengine API or Local ViT is currently active.
+- **Sightengine Key Modal**: Configure credentials directly in the UI without restarting.
+- **Refund & Return Risk Box**: Instant triage (`HIGH RISK`, `MEDIUM RISK`, `LOW RISK`) with policy recommendations.
+- **Camera EXIF Inspection**: Verifies if genuine camera sensor tags are present.
 
 ---
 
 ## 💻 CLI Tool Usage
 
 ```bash
-# Test a local claim image
-python cli.py path/to/damaged_product.jpg
+# Analyze using Auto Mode (uses Sightengine if keys configured, else local ViT)
+python cli.py path/to/damage_photo.jpg
 
-# Output with custom threshold
-python cli.py path/to/damaged_product.jpg --threshold 0.60
+# Force Sightengine with credentials
+python cli.py path/to/damage_photo.jpg --provider sightengine --sightengine-user "USER_ID" --sightengine-secret "SECRET"
+
+# Force Local ViT
+python cli.py path/to/damage_photo.jpg --provider local
 
 # Output raw JSON
-python cli.py path/to/damaged_product.jpg --json
+python cli.py path/to/damage_photo.jpg --json
 ```
 
 **CLI Output Example**:
 ```text
-=======================================================
+==========================================================
+Provider:             Sightengine GenAI API
 Verdict:              [AI-GENERATED] AI-Generated
-Confidence:           79.54%
-AI/Fake Probability:  79.54%
-Real/Authentic Score: 20.46%
+Confidence:           99.00%
+AI / Fake Score:      99.00%
+Real / Authentic:     1.00%
 Decision Threshold:   0.5
 Image Resolution:     1024x538 px
-Inference Latency:    187.63 ms
-Model Architecture:   dima806/ai_vs_real_image_detection
-Compute Device:       CPU
--------------------------------------------------------
+Inference Latency:    182.40 ms
+Model:                sightengine/genai
+Execution Target:     CLOUD_API
+----------------------------------------------------------
 RETURN / REFUND CLAIM ANALYSIS:
   Risk Level:         HIGH_RISK
   Recommended Action: FLAGGED_FOR_MANUAL_REVIEW
   Camera EXIF Found:  False
-  Policy Notes:       High confidence AI-generated damage or synthetic media detected. Do not auto-refund.
-=======================================================
+  Policy Notes:       High confidence synthetic / AI-generated image. Reject or flag claim for manual inspection.
+==========================================================
 ```
 
 ---
@@ -183,23 +171,33 @@ RETURN / REFUND CLAIM ANALYSIS:
 ### `POST /api/v1/detect`
 Upload an image via `multipart/form-data`.
 
+**Parameters**:
+- `file` (form-data, required): Binary image file (`.png`, `.jpg`, `.webp`).
+- `threshold` (query param, optional, default `0.5`): AI decision threshold.
+- `provider` (query param, optional, default `"auto"`): `"auto"`, `"sightengine"`, or `"local"`.
+
+**Headers (Optional)**:
+- `X-Sightengine-User`: Sightengine API user ID.
+- `X-Sightengine-Secret`: Sightengine API secret.
+
 **cURL Example**:
 ```bash
 curl -X POST "http://localhost:8000/api/v1/detect?threshold=0.5" \
-  -F "file=@keyboard_damage.jpg"
+  -F "file=@keyboard.jpg"
 ```
 
 **Response (`200 OK`)**:
 ```json
 {
   "success": true,
+  "provider": "Sightengine GenAI API",
   "is_ai_generated": true,
   "verdict": "AI-Generated",
-  "confidence": 0.7954,
-  "confidence_percentage": "79.54%",
+  "confidence": 0.99,
+  "confidence_percentage": "99.00%",
   "scores": {
-    "artificial": 0.7954,
-    "human": 0.2046
+    "artificial": 0.99,
+    "human": 0.01
   },
   "threshold": 0.5,
   "image_size": {
@@ -217,12 +215,12 @@ curl -X POST "http://localhost:8000/api/v1/detect?threshold=0.5" \
   "refund_fraud_analysis": {
     "risk_level": "HIGH_RISK",
     "recommended_action": "FLAGGED_FOR_MANUAL_REVIEW",
-    "notes": "High confidence AI-generated damage or synthetic media detected. Do not auto-refund.",
+    "notes": "High confidence synthetic / AI-generated image. Reject or flag claim for manual inspection.",
     "has_camera_exif": false
   },
-  "inference_time_ms": 187.63,
-  "model": "dima806/ai_vs_real_image_detection",
-  "device": "cpu",
+  "inference_time_ms": 182.4,
+  "model": "sightengine/genai",
+  "device": "cloud_api",
   "error": null
 }
 ```
@@ -231,14 +229,14 @@ curl -X POST "http://localhost:8000/api/v1/detect?threshold=0.5" \
 
 ## 🌐 Website Integration Guide
 
-### 1. Vanilla JavaScript / Fetch API (Return Portal)
+### 1. Vanilla JavaScript (Return Portal)
 
 ```javascript
-async function verifyRefundImage(file) {
+async function verifyReturnPhoto(file) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch('http://localhost:8000/api/v1/detect?threshold=0.5', {
+  const res = await fetch('http://localhost:8000/api/v1/detect', {
     method: 'POST',
     body: formData,
   });
@@ -254,12 +252,12 @@ async function verifyRefundImage(file) {
 
 ---
 
-### 2. React / Next.js Return Claim Component
+### 2. React / Next.js Component
 
 ```tsx
 import React, { useState } from 'react';
 
-export const RefundPhotoUploader: React.FC = () => {
+export const RefundClaimUploader: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
@@ -285,7 +283,7 @@ export const RefundPhotoUploader: React.FC = () => {
       <h3 className="text-xl font-bold mb-2">Upload Damage Proof</h3>
       <input type="file" accept="image/*" onChange={handleUpload} />
 
-      {loading && <p className="mt-3 text-indigo-400">Verifying authenticity...</p>}
+      {loading && <p className="mt-3 text-indigo-400">Verifying authenticity via Sightengine...</p>}
 
       {result && (
         <div className={`mt-4 p-4 rounded-lg ${result.is_ai_generated ? 'bg-red-950 border border-red-500' : 'bg-emerald-950 border border-emerald-500'}`}>
@@ -293,7 +291,7 @@ export const RefundPhotoUploader: React.FC = () => {
             {result.is_ai_generated ? '⚠️ AI-Generated Damage Detected' : '✅ Verified Authentic Photo'}
           </div>
           <div className="text-sm mt-1">
-            Risk: {result.refund_fraud_analysis.risk_level} &middot; Action: {result.refund_fraud_analysis.recommended_action}
+            Provider: {result.provider} &middot; Risk: {result.refund_fraud_analysis.risk_level}
           </div>
         </div>
       )}
@@ -315,7 +313,7 @@ const axios = require('axios');
 const upload = multer();
 const app = express();
 
-app.post('/api/refund-claim', upload.single('damage_photo'), async (req, res) => {
+app.post('/api/claims/verify', upload.single('photo'), async (req, res) => {
   try {
     const form = new FormData();
     form.append('file', req.file.buffer, {
@@ -330,7 +328,7 @@ app.post('/api/refund-claim', upload.single('damage_photo'), async (req, res) =>
     const analysis = check.data.refund_fraud_analysis;
 
     if (analysis.risk_level === 'HIGH_RISK') {
-      return res.json({ status: 'PENDING_MANUAL_REVIEW', reason: analysis.notes });
+      return res.json({ status: 'HOLD_REFUND', reason: analysis.notes });
     }
 
     return res.json({ status: 'AUTO_REFUND_APPROVED' });
@@ -344,51 +342,17 @@ app.listen(3000);
 
 ---
 
-### 4. Python Client
-
-```python
-import requests
-
-with open("damage_proof.jpg", "rb") as f:
-    r = requests.post("http://localhost:8000/api/v1/detect", files={"file": f})
-    data = r.json()
-    print("Verdict:", data["verdict"])
-    print("Refund Action:", data["refund_fraud_analysis"]["recommended_action"])
-```
-
----
-
-## ⚙️ Extensive & Production Use Guide
-
-### 1. High Concurrency (Gunicorn + Uvicorn)
-```bash
-gunicorn main:app \
-  --workers 4 \
-  --worker-class uvicorn.workers.UvicornWorker \
-  --bind 0.0.0.0:8000 \
-  --timeout 120
-```
-
-### 2. GPU Acceleration
-Install PyTorch with CUDA:
-```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-```
-The engine automatically detects and routes tensors to GPU `cuda:0` reducing latency to ~20ms.
-
----
-
 ## 🧪 Running Automated Tests
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
-All 13 unit & API tests pass in under 2 seconds.
+All 13 tests execute and pass in ~2 seconds.
 
 ---
 
 ## 📄 License
 
-This repository is distributed under the [MIT License](LICENSE).
-The underlying model weights are distributed under the [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license by `dima806`.
+This repository is distributed under the [MIT License](LICENSE).  
+Sightengine is a registered trademark of Sightengine SAS.
